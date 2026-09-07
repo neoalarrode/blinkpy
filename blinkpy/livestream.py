@@ -20,6 +20,7 @@ class BlinkLiveStream:
         self.command_id = response["command_id"]
         self.polling_interval = response["polling_interval"]
         self.target = urllib.parse.urlparse(response["server"])
+        self.liveview_token = response.get("liveview_token", "")
         self.server = None
         self.clients = []
         self.target_reader = None
@@ -74,12 +75,10 @@ class BlinkLiveStream:
         auth_header.extend(static_field)
         # Total packet length: 30 bytes
 
-        # Auth Token field (4-byte length prefix, 64 null bytes for now)
-        # fmt: off
-        token_length = token_field_max_length.to_bytes(4, byteorder="big")
-        _LOGGER.debug("Null token length: %s (%d)", token_length, len(token_length))
-        auth_header.extend(token_length)
-        auth_header.extend([0x00] * token_field_max_length)
+        # Auth Token field (4-byte length prefix, 64 token bytes)
+        self.add_auth_header_string_field(
+            auth_header, self.liveview_token, token_field_max_length
+        )
         # Total packet length: 98 bytes
 
         # Connection ID field (4-byte length prefix, 16 connection ID bytes)
